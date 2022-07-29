@@ -59,7 +59,7 @@ C=======================================================================
       CHARACTER*92 FILECC, FILEGC
 
       INTEGER DAS, DYNAMIC, RUN
-      INTEGER NDLEAF, NDSET, NLAYR, NOUTDO,
+      INTEGER L,NDLEAF, NDSET, NLAYR, NOUTDO,
      &    NR1, NR2, NR5, NR7, NVEG0
       INTEGER RSTAGE, YREND
       INTEGER YREMRG, YRDOY, YRNR1, YRNR2,
@@ -164,7 +164,9 @@ C=======================================================================
 
 !     K model (not yet implemented)
       REAL KSTRES
-
+!     Cummulative C allocated for N fixation (10 day running average)
+      REAL CCTONODS, CCTONOD(10)
+      REAL NAVLEF
 !-----------------------------------------------------------------------
 !     Define constructed variable types based on definitions in
 !     ModuleDefs.for.
@@ -422,16 +424,19 @@ C-----------------------------------------------------------------------
 !***********************************************************************
 !     Seasonal initialization - run once per season
 !***********************************************************************
-      ELSEIF (DYNAMIC .EQ. SEASINIT) THEN
+       ELSEIF (DYNAMIC .EQ. SEASINIT) THEN
 !***********************************************************************
 !     The following statements came from INPLNT
 !-----------------------------------------------------------------------
+      CCTONOD = 0.0
+      CCTONODS    = 0.0
       CMINEP = 0.0
       CNOD   = 0.0
       CNODMN = 0.0
       CTONOD = 0.0
       MAINR  = 0.0
       NAVL   = 0.0
+      NAVLEF = 0.0
       PGAVL  = 0.0
       RO     = 0.0
       RP     = 0.0
@@ -1018,7 +1023,6 @@ C-----------------------------------------------------------------------
          CTONOD = CAVVEG - (CAVVEG +
      &            (NAVLV*RFIXN/0.16))*AGRVG/(AGRVG+PROVEG*RFIXN)
       ENDIF
-
 C-----------------------------------------------------------------------
 C     Reserve for nodule growth an amount of C equivalent to a fixed
 C     fraction (FRCNOD) of C allocated to root growth.  JWH 7/11/95
@@ -1029,7 +1033,25 @@ C-----------------------------------------------------------------------
         CNODMN = 0.0
       END IF
       CTONOD = MIN(CNODMN + MAX(0.0, CTONOD), CAVVEG) + CTONODR
+! Calculate a 4 day running average of the C to allocate for N fixation, not supplied
+! by N uptake and mining. This sustains the C allocated to nodules when the demand for N fixation drops
+! The maximum of CTONOD and CCTONOD is used to allow increase in N fixation if needed
+! This sustains N fix when not needed, based on the average from previous days
+! but allows N fixation to meet demand for the current day if needed
+! Calculate the excess N from N fixation (NAVLEF), generated from sustaining 
+! N fixation, and add to N available (NAVL) (Montse)
 
+      CCTONODS = 0.0
+      DO L = 4,2,-1
+         CCTONOD(L) = CCTONOD(L-1)
+         CCTONODS = CCTONODS + CCTONOD(L)
+      ENDDO
+      CCTONOD(1) = CTONOD
+      CCTONODS = CCTONODS + CTONOD
+      CTONOD = MIN(CCTONODS/4, CAVVEG+CTONODR)
+!      NAVLEF  = MAX(0.0, CCTONODS/4 - CTONOD,CNODMN)/(RFIXN/0.16)
+      CTONOD  = MAX(CCTONODS/4, CTONOD,CNODMN)
+ 
 C-----------------------------------------------------------------------
 C     Call nitrogen fixation routine if ISWSYM is set to Y
 C     and if thermal time exceeds the lag phase for n-fixation
@@ -1050,7 +1072,7 @@ C       that carbon will allow, and nodules are not grown explicitely
 C-----------------------------------------------------------------------
       IF ((ISWNIT .EQ. 'Y') .AND. (ISWSYM .EQ. 'U') .OR.
      &   (ISWNIT .NE. 'Y')) THEN
-        NFIXN = MAX(0.0,NDMREP + NDMVEG - NAVL)
+        NFIXN = MAX(0.0,NDMREP + NDMVEG - NAVL )
         CNOD = RFIXN * NFIXN/0.16
       ENDIF
 C-----------------------------------------------------------------------

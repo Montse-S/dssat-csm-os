@@ -96,6 +96,8 @@
       REAL SHELN(NCOHORTS), SDDES(NCOHORTS), SUPDE(NCOHORTS)
       REAL AVTEM(NCOHORTS), FLWN(NCOHORTS)
       REAL PHTIM(NCOHORTS), PNTIM(NCOHORTS)
+      
+      INTEGER test
 
 !     P module
       REAL PStres2, CPSTRES
@@ -377,6 +379,9 @@
 !     DAS   = MAX(0,TIMDIF(YRSIM,YRDOY))
       CALL GET(CONTROL)
       DAS = CONTROL % DAS
+!      open(UNIT = test, FILE = 'PODS_VAR.txt', position ="append")
+!      write(test, '(2I)') YRDOY, das
+ 
 
 !***********************************************************************
 !     Seed growth section
@@ -864,6 +869,8 @@ C-GH          IF (SHELN(NPP) .GE. 0.001 .AND. GRRAT1 .GE. 0.001) THEN
       REAL PGAVLR, PLIGSD, PMINSD, PNINSD, POASD, POTCAR, POTLIP
       REAL PROMAX, PROMIN, RATIOC, RATION, RCH2O, RLIG, RLIP
       REAL RMIN, ROA, RSD, THETA, TOTAL, XRSD
+      
+      integer test
 
 !***********************************************************************
 !***********************************************************************
@@ -1130,6 +1137,9 @@ C-GH          IF (SHELN(NPP) .GE. 0.001 .AND. GRRAT1 .GE. 0.001) THEN
           ENDIF
         ENDIF
 
+      open(UNIT = test, FILE = 'PODS_VAR.txt', position ="append")
+      write(test, '(5F8.3)') CRSD2,NRSD,FNINSD,PNINSD, ANINSD
+      close(unit=test)
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
 !  For cases 2, 3 and 4, adjust lipids and carbohydrate concentrations
